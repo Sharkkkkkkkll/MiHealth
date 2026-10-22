@@ -19,6 +19,7 @@ test_curves/
 research/
 health_report.md
 Agent/memory_data/
+docs/04测试/curve_*.json
 *.db
 *.sqlite
 *.sqlite3

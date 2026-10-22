@@ -20,9 +20,9 @@ MiHealth 通过小米手环采集健康数据，结合历史睡眠分期和实�
                                         ↓ JSON 导出
                               仪表盘服务器 (:8000)
                                         ↓ HTTP /api/*
-                              代理服务器 (:8001)
+                              Agent 服务器 (:8001)
                                         ↓ HTTP /api/agent/*
-                              Android 应用程序（Kotlin/Compose）
+                              Android App (Kotlin/Compose)
                                         ↓ BLE 直连
                                      小米手环
 ```
@@ -64,7 +64,7 @@ MiHealth 通过小米手环采集健康数据，结合历史睡眠分期和实�
 | 层 | 技术 |
 |---|---|
 | Android | Kotlin + Jetpack Compose |
-| 代理服务 | Python 3.14 + 标准库 http.server，无任何第三方依赖 |
+| Agent 服务 | Python 3.14 + 标准库 http.server，零第三方依赖 |
 | LLM | 百炼 qwen3.x（OpenAI 兼容接口），规则引擎兜底 |
 | 数据桥 | Mi Fitness Data Bridge |
 | 实时心率 | Android BLE GATT |
@@ -78,7 +78,7 @@ MiHealth 通过小米手环采集健康数据，结合历史睡眠分期和实�
 ### 模块结构
 
 ```
-代理/
+Agent/
 ├── agent_server.py      # HTTP 服务 + 调度线程 + 启动恢复
 ├── planner.py           # 睡眠规划（S/P 双锚点 + LLM 决策）
 ├── notifier.py          # 睡前提醒 + 闹钟包生成
@@ -103,11 +103,11 @@ MiHealth 通过小米手环采集健康数据，结合历史睡眠分期和实�
 
 ### 三层记忆
 
-Agent 使用`memory.py` 维护三层记忆，全部按用户隔离：
+Agent 用 `memory.py` 维护三层记忆，全部按用户隔离：
 
-- **偏好设置**：作息目标、授权开关、闹钟包、唤醒策略
-**：Agent 对话和决策滚动记录
-- **反馈**：唤醒复盘、用户反馈，用于学习进化
+- **preferences**：作息目标、授权开关、闹钟包、唤醒策略
+- **history**：Agent 对话和决策滚动记录
+- **feedback**：唤醒复盘、用户反馈，用于学习进化
 
 ### 规则引擎 + LLM 分层
 
@@ -130,7 +130,27 @@ Agent 采用「规则引擎打底 + LLM 决策」的双层结构：
 
 ## 快速开始
 
-### 1. 启动服务器
+### 1. 配置 Agent
+
+Agent 需要 LLM API Key 才能工作。复制模板并填入你自己的 Key：
+
+```bash
+cd Agent
+cp .env.example .env
+```
+
+然后编辑 `.env`，至少配置：
+
+```ini
+DASHSCOPE_API_KEY=sk-你的key
+DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+AGENT_MODEL=qwen3.7-flash-2026-07-15
+AGENT_PORT=8001
+```
+
+> 本项目使用阿里百炼 DashScope 的 OpenAI 兼容接口。你也可以换成其他 OpenAI 兼容服务，改 `DASHSCOPE_BASE_URL` 和 `AGENT_MODEL` 即可。
+
+### 2. 启动服务器
 
 ```bash
 # 启动仪表盘服务器
@@ -140,19 +160,20 @@ python start_server.py
 python Agent/agent_server.py
 ```
 
-### 2. 安装 App
+###3. 安装应用
 
 1. 用 Android Studio 构建 APK
 2. 安装到 Android 8.0+ 手机
-3. 打开 App，填写电脑局域网 IP
+3. 打开 App，填写你的服务器地址，例如 `http://192.168.1.100:8000`
+4.应用会自动推导出 Agent 端口为`，无需单独填写
 
-### 3. 扫码登录
+### 4. 扫码登录
 
 1. 打开 App → 设置 → 小米账号登录
 2. 用米家 App 扫码
 3. 扫码成功后自动保存账号
 
-### 4. 开启心率广播
+### 5. 开启心率广播
 
 1. 先在小米运动健康里打开手环的「心率广播」
 2. 打开 MiHealth → 更多 → 心率广播
@@ -173,3 +194,7 @@ python Agent/agent_server.py
 
 - 本项目使用小米非官方接口，可能随小米服务变化失效
 - 睡眠分期为心率近似信号，非医疗级 EEG 精确分期
+
+##许可证
+
+本项目仅供学习交流使用，未指定开源许可证。

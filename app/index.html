@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>小米手环 · 健康仪表盘</title>
+<script src="chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1116; --card:#171c24; --card2:#1f2630; --txt:#e8edf4; --sub:#8b97a7;
+    --step:#3b82f6; --sleep:#8b5cf6; --hr:#ef4444; --spo2:#10b981; --stress:#f59e0b;
+    --line:#2a323d;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    padding:max(16px,env(safe-area-inset-top)) 16px 40px}
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+  h1{font-size:20px;margin:0;font-weight:700}
+  .meta{font-size:12px;color:var(--sub);margin-top:2px}
+  .btns{display:flex;gap:8px}
+  button{background:var(--card2);color:var(--txt);border:1px solid var(--line);
+    border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer;font-weight:600}
+  button:active{transform:scale(.96)}
+  button.primary{background:var(--step);border-color:var(--step);color:#fff}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+  .card .k{font-size:12px;color:var(--sub)}
+  .card .v{font-size:22px;font-weight:700;margin-top:4px}
+  .card .u{font-size:12px;color:var(--sub);font-weight:400}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px}
+  .panel h2{font-size:15px;margin:0 0 10px;font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr;gap:14px}
+  @media(min-width:760px){.grid2{grid-template-columns:1fr 1fr}}
+  .chartbox{position:relative;height:240px}
+  .chartbox.sm{height:200px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--sub);font-weight:600}
+  .empty{color:var(--sub);font-size:13px;padding:20px;text-align:center}
+  .tag{display:inline-block;background:var(--card2);border-radius:6px;padding:2px 8px;font-size:12px;color:var(--sub)}
+  .status{font-size:12px;color:var(--sub);margin-left:8px}
+  .seg{display:flex;gap:6px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .segbtn{background:var(--card2);color:var(--sub);border:1px solid var(--line);
+    border-radius:999px;padding:7px 18px;font-size:13px;cursor:pointer;font-weight:600}
+  .segbtn.active{background:var(--sleep);border-color:var(--sleep);color:#fff}
+  .hypno{background:var(--card2);border-radius:8px;padding:5px;overflow:hidden}
+  .hypnoBar{display:flex;height:36px;width:100%;border-radius:5px;overflow:hidden}
+  .segcell{height:100%;min-width:1px}
+  .hypnoAxis{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-top:5px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--sub)}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:middle}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>❤️ 小米手环 · 健康仪表盘</h1>
+    <div class="meta" id="meta">加载中…</div>
+  </div>
+  <div class="btns">
+    <button id="refresh">↻ 刷新</button>
+    <button id="pull" class="primary">⟳ 重新同步</button>
+  </div>
+</header>
+
+<div class="cards" id="cards"></div>
+
+<div class="panel">
+  <h2>🚶 步数（每日 · 含 7 日均值）</h2>
+  <div class="chartbox"><canvas id="stepsChart"></canvas></div>
+</div>
+
+<div class="panel" id="sleepSection">
+  <h2>😴 睡眠深度分析</h2>
+  <div class="seg">
+    <button class="segbtn active" data-mode="overview">总览</button>
+    <button class="segbtn" data-mode="day">单日</button>
+    <select id="sleepDay" style="display:none;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px"></select>
+  </div>
+  <div id="sleepOverview"></div>
+  <div id="sleepDayView" style="display:none"></div>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>😴 睡眠时长（分钟/晚）</h2>
+    <div class="chartbox sm"><canvas id="sleepDurChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h2>😴 睡眠评分</h2>
+    <div class="chartbox sm"><canvas id="sleepScoreChart"></canvas></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>😴 小睡 / 打盹记录（白天自动检测）</h2>
+  <div id="naps"><div class="empty">无小睡记录</div></div>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>❤️ 静息心率趋势</h2>
+    <div class="chartbox sm"><canvas id="hrChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h2>🫁 血氧 SpO₂ 趋势</h2>
+    <div class="chartbox sm"><canvas id="spo2Chart"></canvas></div>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>🧠 压力趋势</h2>
+    <div class="chartbox sm"><canvas id="stressChart"></canvas></div>
+  </div>
+  <div class="panel">
+    <h2>📊 压力等级分布 / 睡眠结构</h2>
+    <div class="grid2" style="gap:8px">
+      <div class="chartbox sm"><canvas id="stressPie"></canvas></div>
+      <div class="chartbox sm"><canvas id="sleepPie"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>❤️ 全天心率详情（每分钟测量）</h2>
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+    <label style="color:var(--sub);font-size:13px">选择日期：</label>
+    <select id="hrDay" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px"></select>
+    <span id="hrDayInfo" class="tag"></span>
+  </div>
+  <div class="chartbox" style="height:260px"><canvas id="hrDayChart"></canvas></div>
+</div>
+
+<div class="panel">
+  <h2>🏃 运动记录</h2>
+  <div id="workouts"><div class="empty">无运动记录</div></div>
+</div>
+
+<script>
+const C={step:'#3b82f6',sleep:'#8b5cf6',hr:'#ef4444',spo2:'#10b981',stress:'#f59e0b',grid:'#2a323d',sub:'#8b97a7'};
+const charts={};
+function baseOpts(yTitle){
+  return {
+    responsive:true,maintainAspectRatio:false,
+    interaction:{intersect:false,mode:'index'},
+    plugins:{legend:{labels:{color:C.sub,boxWidth:12,font:{size:11}}}},
+    scales:{
+      x:{ticks:{color:C.sub,maxTicksLimit:10,autoSkip:true,font:{size:10}},grid:{color:C.grid}},
+      y:{ticks:{color:C.sub,font:{size:10}},grid:{color:C.grid},title:yTitle?{display:true,text:yTitle,color:C.sub,font:{size:10}}:undefined}
+    }
+  };
+}
+function makeChart(id,type,data,opts){
+  if(charts[id]){charts[id].data=data;charts[id].update();return charts[id];}
+  charts[id]=new Chart(document.getElementById(id),{type,data,options:opts});return charts[id];
+}
+function fmt(n,d=0){return n==null?'—':Number(n).toLocaleString('zh-CN',{maximumFractionDigits:d});}
+
+async function renderHrDay(day){
+  if(!day) return;
+  const r=await fetch('/api/hr?day='+day).then(x=>x.json());
+  if(r.error){document.getElementById('hrDayInfo').textContent=r.error;return;}
+  document.getElementById('hrDayInfo').textContent=r.count+' 个测量点';
+  const ds={label:day+' 心率',data:r.values,borderColor:C.hr,backgroundColor:'rgba(239,68,68,.10)',fill:true,pointRadius:0,borderWidth:1.5,tension:.25};
+  if(charts.hrDay){charts.hrDay.data.labels=r.labels;charts.hrDay.data.datasets[0]=ds;charts.hrDay.update();return;}
+  charts.hrDay=new Chart(document.getElementById('hrDayChart'),{type:'line',data:{labels:r.labels,datasets:[ds]},options:baseOpts('bpm')});
+}
+
+async function load(){
+  const res=await fetch('/api/data');const d=await res.json();
+  if(d.error){document.getElementById('meta').textContent='⚠️ '+d.error;return;}
+  document.getElementById('meta').innerHTML=
+    `数据来源 <span class="tag">${d.file}</span> · 导出 ${d.generated_at||'—'} · 刷新 ${new Date().toLocaleTimeString('zh-CN')}`;
+  // 摘要卡片
+  const s=d.summary;const cd=[
+    ['统计天数',fmt(s.days),'天'],['日均步数',fmt(s.avg_steps),'步'],
+    ['总距离',fmt(s.total_distance_km,1),'km'],['总消耗',fmt(s.total_kcal),'kcal'],
+    ['平均睡眠',fmt(s.avg_sleep_min),'分'],['睡眠评分',fmt(s.avg_sleep_score),'分'],
+    ['静息心率',fmt(s.resting_hr),'bpm'],['平均压力',fmt(s.stress_avg),'']
+  ];
+  if(d.hr_overview){const o=d.hr_overview;cd.push(['全天心率均值',fmt(o.avg),'bpm'],['全天心率极值',o.min+'/'+o.max,'bpm'],['全天心率P10/P90',o.p10+'/'+o.p90,'bpm']);}
+  if(d.nap_count) cd.push(['小睡/打盹',fmt(d.nap_count),'次']);
+  document.getElementById('cards').innerHTML=cd.map(c=>
+    `<div class="card"><div class="k">${c[0]}</div><div class="v">${c[1]} <span class="u">${c[2]}</span></div></div>`).join('');
+
+  // 步数
+  makeChart('stepsChart','line',{
+    labels:d.steps.labels,
+    datasets:[
+      {label:'步数',data:d.steps.values,borderColor:C.step,backgroundColor:'rgba(59,130,246,.15)',fill:true,pointRadius:0,borderWidth:2,tension:.3},
+      {label:'7日均线',data:d.steps.avg7,borderColor:'#fbbf24',borderDash:[5,4],pointRadius:0,borderWidth:2,tension:.3}
+    ]},baseOpts('步'));
+
+  // 睡眠时长 & 评分
+  makeChart('sleepDurChart','line',{labels:d.sleep.labels,
+    datasets:[{label:'时长(分)',data:d.sleep.duration,borderColor:C.sleep,backgroundColor:'rgba(139,92,246,.15)',fill:true,pointRadius:0,borderWidth:2,tension:.3}]},baseOpts('分'));
+  makeChart('sleepScoreChart','line',{labels:d.sleep.labels,
+    datasets:[{label:'评分',data:d.sleep.score,borderColor:'#22d3ee',pointRadius:0,borderWidth:2,tension:.3}]},baseOpts('分'));
+
+  // 静息心率
+  makeChart('hrChart','line',{labels:d.resting_hr.labels,
+    datasets:[{label:'静息心率',data:d.resting_hr.values,borderColor:C.hr,backgroundColor:'rgba(239,68,68,.12)',fill:true,pointRadius:0,borderWidth:2,tension:.3}]},baseOpts('bpm'));
+
+  // 血氧
+  makeChart('spo2Chart','line',{labels:d.spo2.labels,
+    datasets:[{label:'SpO₂',data:d.spo2.values,borderColor:C.spo2,backgroundColor:'rgba(16,185,129,.12)',fill:true,pointRadius:0,borderWidth:2,tension:.3}]},baseOpts('%'));
+
+  // 压力
+  makeChart('stressChart','line',{labels:d.stress.labels,
+    datasets:[{label:'压力指数',data:d.stress.values,borderColor:C.stress,backgroundColor:'rgba(245,158,11,.12)',fill:true,pointRadius:0,borderWidth:2,tension:.3}]},baseOpts(''));
+
+  // 压力等级 pie
+  const lv=d.stress.levels||{};const lvColors={'relax':'#10b981','normal':'#3b82f6','medium':'#f59e0b','high':'#ef4444'};
+  const lvKeys=Object.keys(lv);
+  makeChart('stressPie','doughnut',{labels:lvKeys,
+    datasets:[{data:lvKeys.map(k=>lv[k]),backgroundColor:lvKeys.map(k=>lvColors[k]||'#888'),borderColor:'#171c24',borderWidth:2}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:C.sub,boxWidth:10,font:{size:10}}},title:{display:true,text:'压力等级',color:C.sub}}});
+
+  // 睡眠结构 pie
+  const sa=d.sleep.stages_avg||{};
+  makeChart('sleepPie','doughnut',{labels:['深睡','REM','浅睡'],
+    datasets:[{data:[sa.deep,sa.rem,sa.light],backgroundColor:['#8b5cf6','#22d3ee','#64748b'],borderColor:'#171c24',borderWidth:2}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:C.sub,boxWidth:10,font:{size:10}}},title:{display:true,text:'睡眠结构',color:C.sub}}});
+
+  // 运动
+  const w=d.workouts||[];
+  document.getElementById('workouts').innerHTML=w.length?`<table><tr><th>日期</th><th>类型</th><th>时长</th><th>距离</th><th>消耗</th><th>心率</th></tr>${
+    w.map(r=>`<tr><td>${r.date}</td><td>${r.type||'—'}</td><td>${r.duration}分</td><td>${r.distance_km}km</td><td>${fmt(r.kcal)}kcal</td><td>${r.avg_hr||'—'}/${r.max_hr||'—'}</td></tr>`).join('')
+  }</table>`:'<div class="empty">无运动记录</div>';
+
+  // 小睡 / 打盹
+  const np=d.naps||[];
+  document.getElementById('naps').innerHTML=np.length?`<table><tr><th>日期</th><th>开始</th><th>结束</th><th>时长</th><th>评分</th></tr>${
+    np.slice().reverse().map(r=>`<tr><td>${r.date}</td><td>${r.start}</td><td>${r.end}</td><td>${r.duration_min}分</td><td>${r.score??'—'}</td></tr>`).join('')
+  }</table>`:'<div class="empty">无小睡记录</div>';
+
+  // 全天心率详情：填充日期下拉并渲染
+  const sel=document.getElementById('hrDay');
+  if(d.hr_detail_days&&d.hr_detail_days.length){
+    if(sel.options.length!==d.hr_detail_days.length){
+      sel.innerHTML=d.hr_detail_days.map(x=>`<option value="${x}">${x}</option>`).join('');
+    }
+    sel.onchange=()=>renderHrDay(sel.value);
+    if(!sel.value) sel.value=d.hr_detail_days[d.hr_detail_days.length-1];
+    renderHrDay(sel.value);
+  }
+}
+
+document.getElementById('refresh').onclick=()=>load();
+document.getElementById('pull').onclick=async()=>{
+  const btn=document.getElementById('pull');btn.textContent='同步中…';btn.disabled=true;
+  await fetch('/api/pull');
+  // 轮询直到出现新数据（最多 ~90s）
+  const start=Date.now();
+  const tick=async()=>{
+    await new Promise(r=>setTimeout(r,4000));
+    await load();
+    if(Date.now()-start>90000){btn.textContent='⟳ 重新同步';btn.disabled=false;return;}
+    tick();
+  };
+  tick();
+};
+
+// ---------- 睡眠深度分析 ----------
+const SCOL={'awake':'#ef4444','light':'#64748b','deep':'#8b5cf6','rem':'#22d3ee'};
+const SNM={'awake':'清醒','light':'浅睡','deep':'深睡','rem':'REM'};
+let sleepMode='overview';
+
+async function loadSleepOverview(){
+  const d=await fetch('/api/sleep').then(x=>x.json());
+  const el=document.getElementById('sleepOverview');
+  if(d.error){el.innerHTML=`<div class="empty">${d.error}</div>`;return;}
+  const c=d.composition||{};
+  const cards=[
+    ['平均睡眠时长',d.avg_sleep_hm,''],
+    ['睡眠质量',`${fmt(d.avg_score)}分 · ${d.score_label}`,''],
+    ['睡眠期平均心率',fmt(d.sleeping_hr_avg),'bpm'],
+    ['静息心率',fmt(d.resting_hr_avg),'bpm'],
+    ['深睡占比',c.deep+'%',''],
+    ['REM占比',c.rem+'%',''],
+    ['浅睡占比',c.light+'%',''],
+    ['清醒占比',c.awake+'%',''],
+    ['小睡/打盹',d.nap_count,'次'],
+    ['主睡眠天数',d.sleep_days,'天']
+  ];
+  el.innerHTML=
+    `<div class="cards" style="margin-bottom:12px">`+
+    cards.map(c=>`<div class="card"><div class="k">${c[0]}</div><div class="v">${c[1]} <span class="u">${c[2]}</span></div></div>`).join('')+
+    `</div>`+
+    `<div class="grid2"><div class="panel" style="margin:0"><h2>睡眠结构占比</h2><div class="chartbox sm"><canvas id="sleepCompPie"></canvas></div></div>`+
+    `<div class="panel" style="margin:0"><h2>说明</h2><div class="meta" style="line-height:1.8">基于 <b>${d.sleep_days}</b> 个夜间主睡眠统计。<b style="color:${SCOL.deep}">深睡</b>修复身体、<b style="color:${SCOL.rem}">REM</b>关联记忆与情绪、<b style="color:${SCOL.light}">浅睡</b>为过渡。平均睡眠 <b>${d.avg_sleep_hm}</b>，评分 <b>${fmt(d.avg_score)}</b>（${d.score_label}）。小睡/打盹共 <b>${d.nap_count}</b> 次——白天补觉偏多，可能反映夜间睡眠不足。</div></div></div>`;
+  makeChart('sleepCompPie','doughnut',{labels:['深睡','REM','浅睡','清醒'],
+    datasets:[{data:[c.deep||0,c.rem||0,c.light||0,c.awake||0],
+      backgroundColor:[SCOL.deep,SCOL.rem,SCOL.light,SCOL.awake],borderColor:'#171c24',borderWidth:2}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:C.sub,boxWidth:10,font:{size:10}}}}});
+  const sel=document.getElementById('sleepDay');
+  if(d.main_dates&&d.main_dates.length){
+    const uniq=[...new Set(d.main_dates)];
+    sel.innerHTML=uniq.map(x=>`<option value="${x}">${x}</option>`).join('');
+  }
+}
+
+async function loadSleepDay(day){
+  if(!day) return;
+  const d=await fetch('/api/sleep?day='+day).then(x=>x.json());
+  const el=document.getElementById('sleepDayView');
+  if(d.error){el.innerHTML=`<div class="empty">${d.error}</div>`;return;}
+  const sc=d.stage_counts||{}, tot=d.total_min||1;
+  const segsHtml=d.segments.map(s=>`<div class="segcell" style="width:${s.minutes/tot*100}%;background:${SCOL[s.stage]}" title="${SNM[s.stage]} ${s.minutes}分 (${s.start}-${s.end})"></div>`).join('');
+  const napsHtml=d.naps&&d.naps.length?d.naps.map(n=>`<span class="tag">小睡 ${n.start}~${n.end} · ${n.duration_min}分</span>`).join(' '):'<span class="meta">当天无小睡记录</span>';
+  const spHtml=d.spo2&&d.spo2.length?`<table><tr><th>时间</th><th>血氧</th><th>状态</th></tr>${d.spo2.map(x=>`<tr><td>${x.t}</td><td>${x.v}%</td><td>${x.v<90?'<span style="color:#ef4444">偏低·需关注</span>':x.v<92?'<span style="color:#f59e0b">略低</span>':'正常'}</td></tr>`).join('')}</table>`:'<div class="empty">无血氧数据</div>';
+  const spSummary=d.spo2&&d.spo2.length?`最低 <b>${d.spo2_min}%</b> · 平均 <b>${d.spo2_avg}%</b> · 低于92% <b>${d.spo2_low}</b> 次`:'';
+  el.innerHTML=`
+   <div class="cards" style="margin:12px 0">
+     <div class="card"><div class="k">入睡 ~ 起床</div><div class="v" style="font-size:18px">${d.start} <span class="u">→</span> ${d.end}</div></div>
+     <div class="card"><div class="k">总睡眠</div><div class="v">${d.total_hm}</div></div>
+     <div class="card"><div class="k">在床时长</div><div class="v">${d.inbed_hm}</div></div>
+     <div class="card"><div class="k">睡眠评分</div><div class="v">${d.score??'—'}</div></div>
+   </div>
+   <div class="panel" style="margin:0 0 12px"><h2>睡眠曲线（横轴 = 时间）</h2>
+     <div class="hypno"><div class="hypnoBar">${segsHtml}</div></div>
+     <div class="hypnoAxis"><span>${d.start}</span><span>${d.end}</span></div>
+     <div class="legend">${Object.keys(SNM).map(k=>`<span><i style="background:${SCOL[k]}"></i>${SNM[k]}</span>`).join('')}</div>
+     <div class="meta" style="margin-top:8px">深睡 <b>${sc.deep||0}</b>分 · REM <b>${sc.rem||0}</b>分 · 浅睡 <b>${sc.light||0}</b>分 · 清醒 <b>${sc.awake||0}</b>分</div>
+     <div style="margin-top:10px">${napsHtml}</div>
+   </div>
+   <div class="grid2">
+     <div class="panel" style="margin:0"><h2>睡眠心率（含睡前30分钟）</h2><div class="chartbox" style="height:240px"><canvas id="sleepHrChart"></canvas></div><div class="meta" style="margin-top:6px">睡前→入睡交界即生物钟「清醒→困意」转折，后续可据此研究作息规律</div></div>
+     <div class="panel" style="margin:0"><h2>睡眠血氧</h2>${spHtml}<div class="meta" style="margin-top:6px">${spSummary}。频繁低于90%提示打鼾/呼吸暂停风险，建议就医评估</div></div>
+   </div>`;
+  const pre=d.hr.filter(x=>x.phase=='pre'), sl=d.hr.filter(x=>x.phase=='sleep');
+  const labels=d.hr.map(x=>x.t);
+  const preData=labels.map(t=>{const p=pre.find(x=>x.t===t);return p?p.bpm:null;});
+  const slData=labels.map(t=>{const p=sl.find(x=>x.t===t);return p?p.bpm:null;});
+  makeChart('sleepHrChart','line',{labels,datasets:[
+    {label:'睡前(清醒)',data:preData,borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.12)',fill:true,pointRadius:0,borderWidth:1.5,tension:.3},
+    {label:'睡眠中',data:slData,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.12)',fill:true,pointRadius:0,borderWidth:1.5,tension:.3}
+  ]},baseOpts('bpm'));
+}
+
+document.querySelectorAll('.segbtn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.segbtn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const m=b.dataset.mode; sleepMode=m;
+  document.getElementById('sleepDay').style.display=m==='day'?'inline-block':'none';
+  document.getElementById('sleepOverview').style.display=m==='overview'?'block':'none';
+  document.getElementById('sleepDayView').style.display=m==='day'?'block':'none';
+  if(m==='overview') loadSleepOverview();
+  else loadSleepDay(document.getElementById('sleepDay').value);
+});
+document.getElementById('sleepDay').onchange=()=>loadSleepDay(document.getElementById('sleepDay').value);
+
+load();
+loadSleepOverview();
+setInterval(load,30000); // 自动刷新，联动最新 JSON
+</script>
+</body>
+</html>

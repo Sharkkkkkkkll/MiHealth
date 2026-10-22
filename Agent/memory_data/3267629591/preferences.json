@@ -1,0 +1,63 @@
+{
+ "sleep_goal": {
+  "updated_at": "1792503716943"
+ },
+ "updated_at": "2026-10-20T21:41:56",
+ "agent_auth": {
+  "notify": false,
+  "alarm": false,
+  "ai_plan": true,
+  "hr_broadcast": false
+ },
+ "alarm_pack": {
+  "date": "2026-10-20",
+  "bedtime": null,
+  "bed_min": null,
+  "version": 1792503716,
+  "items": []
+ },
+ "alarm_ack_events": [],
+ "tonight_plan": {
+  "date": "2026-10-22",
+  "bedtime": "00:45",
+  "bedtime_min": 45,
+  "reason": "恢复效率0.99且无HR负债属正常夜，推荐贴近计划锚点P(23:35)以温和引导生物钟前置。",
+  "note": "今晚状态极佳，建议23:30左右开启助眠仪式，顺应自然困意即可，无需强求过早卧床。",
+  "situation": "正常夜",
+  "fallback": "00:20",
+  "in_bed_by": "00:15",
+  "cand": {
+   "S": "00:30",
+   "P": "23:35",
+   "early_min": 154,
+   "late_min": 106,
+   "lo": "00:20",
+   "hi": "00:30",
+   "center": "00:20",
+   "debt_min": 0
+  },
+  "generated_at": "2026-10-22T00:00:27",
+  "params": {
+   "wake": "",
+   "bedtime": "",
+   "ai_plan": true,
+   "day_sleeps": []
+  }
+ },
+ "plan_log": [
+  {
+   "date": "2026-10-20",
+   "bedtime_min": 5
+  },
+  {
+   "date": "2026-10-21",
+   "bedtime_min": 5
+  },
+  {
+   "date": "2026-10-22",
+   "bedtime_min": 45
+  }
+ ],
+ "last_screen_off_min": 0,
+ "last_screen_report": "2026-10-20T21:43:03"
+}

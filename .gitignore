@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 环境变量 / 密钥
+.env
+*.env
+*.pem
+*.key
+*.jks
+*.keystore
+
+# 真实健康数据（隐私）
+JSON/
+test_curves/
+research/
+health_report.md
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE / 本地配置
+.idea/
+.junie/
+.vscode/
+*.iml
+local.properties
+
+# 日志 / 临时文件
+*.log
+*.tmp
+*.bak
+Thumbs.db
+.DS_Store
+
+# 文档中的敏感时间线（含 API Key / 账号信息，需打码后手动决定是否发布）
+MIAI_需求与改动时间线.md

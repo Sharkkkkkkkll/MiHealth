@@ -1,0 +1,18 @@
+{
+ "early_shift": {
+  "max_min": 151,
+  "avg_min": 151,
+  "samples": 30
+ },
+ "late_shift": {
+  "max_min": 106,
+  "avg_min": 106,
+  "samples": 23
+ },
+ "sleepiness": {
+  "max_min": 45,
+  "avg_min": 20,
+  "samples": 0
+ },
+ "updated_at": "2026-10-22T06:01:46"
+}

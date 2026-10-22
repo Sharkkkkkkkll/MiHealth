@@ -18,6 +18,7 @@ JSON/
 test_curves/
 research/
 health_report.md
+Agent/memory_data/
 *.db
 *.sqlite
 *.sqlite3
